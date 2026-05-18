@@ -283,14 +283,22 @@ export const sendRecoveryEmail = createServerFn({ method: "POST" })
 async function sendMailHelper(to: string, subject: string, html: string, fallbackLog: string): Promise<boolean> {
   if (typeof window !== "undefined") return false;
 
+  // Bypass Vite static string replacement at build-time to guarantee runtime variables are read!
+  const getEnv = (key: string) => {
+    if (typeof process !== "undefined" && process.env) {
+      return process.env[key] || "";
+    }
+    return "";
+  };
+
   // Resolve SMTP configuration dynamically to avoid SSR module cache issues
   const currentSmtpConfig = {
-    host: process.env.SMTP_HOST || "smtp.gmail.com",
-    port: parseInt(process.env.SMTP_PORT || "587"),
-    secure: process.env.SMTP_SECURE === "true",
+    host: getEnv("SMTP_HOST") || "smtp.gmail.com",
+    port: parseInt(getEnv("SMTP_PORT") || "587"),
+    secure: getEnv("SMTP_SECURE") === "true",
     auth: {
-      user: process.env.SMTP_USER || "",
-      pass: process.env.SMTP_PASS || ""
+      user: getEnv("SMTP_USER"),
+      pass: getEnv("SMTP_PASS")
     },
     // Force Node.js to use IPv4 instead of IPv6 to prevent ENETUNREACH errors on Render/Vercel
     family: 4
