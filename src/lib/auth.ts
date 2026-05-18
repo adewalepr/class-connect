@@ -172,7 +172,21 @@ export async function logout(): Promise<void> {
 
 // User sign up
 export async function register(profile: Omit<UserSession, "uid" | "role"> & { role: "student" | "lecturer" }): Promise<UserSession> {
-  const generatedUsername = profile.username; // Already generated ATTD-XXXXX
+  let generatedUsername = profile.username;
+  
+  // Uniqueness check to prevent collisions if multiple users register
+  let isUnique = false;
+  let attempts = 0;
+  while (!isUnique && attempts < 10) {
+    const existingEmail = await findEmailByUsername(generatedUsername);
+    if (!existingEmail) {
+      isUnique = true;
+    } else {
+      generatedUsername = "ATTD-" + Math.floor(10000 + Math.random() * 90000);
+      attempts++;
+    }
+  }
+
   const generatedPassword = Math.random().toString(36).substring(2, 6) + "@" + Math.floor(100 + Math.random() * 900); // e.g. Xy7#pL29-like
 
   if (isLiveFirebase && auth) {
