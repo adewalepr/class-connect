@@ -1,8 +1,10 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { ChevronRight, Bell, Shield, Moon, Globe, HelpCircle, LogOut, Pencil } from "lucide-react";
 import { PhoneShell } from "@/components/PhoneShell";
 import { ScreenHeader } from "@/components/ScreenHeader";
+import { subscribeAuth, logout, UserSession } from "@/lib/auth";
+import { getCollection } from "@/lib/database";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({ meta: [{ title: "Profile — Attendify" }] }),
@@ -18,13 +20,39 @@ function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void 
 }
 
 function Profile() {
+  const navigate = useNavigate();
+  const [user, setUser] = useState<UserSession | null>(null);
+  const [stats, setStats] = useState({ averageRate: 86 });
   const [dark, setDark] = useState(false);
   const [notif, setNotif] = useState(true);
   const [reminders, setReminders] = useState(true);
 
   useEffect(() => {
     setDark(document.documentElement.classList.contains("dark"));
-  }, []);
+
+    // Subscribe to current authenticated student session
+    const unsubAuth = subscribeAuth((currUser) => {
+      if (!currUser) {
+        navigate({ to: "/login" });
+      } else if (currUser.role !== "student") {
+        if (currUser.role === "admin") navigate({ to: "/admin" });
+        if (currUser.role === "lecturer") navigate({ to: "/lecturer" });
+      } else {
+        setUser(currUser);
+      }
+    });
+
+    // Fetch stats
+    async function loadStats() {
+      const analytics = await getCollection("analytics");
+      if (analytics && analytics[0]) {
+        setStats(analytics[0]);
+      }
+    }
+    loadStats();
+
+    return () => unsubAuth();
+  }, [navigate]);
 
   const toggleDark = (v: boolean) => {
     setDark(v);
@@ -32,12 +60,21 @@ function Profile() {
     localStorage.setItem("theme", v ? "dark" : "light");
   };
 
+  const handleLogout = () => {
+    logout().then(() => navigate({ to: "/login" }));
+  };
+
+  if (!user) return null;
+
+  const initials = `${user.otherNames?.[0] || ""}${user.surname?.[0] || ""}`.toUpperCase() || "A";
+
   const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
-    <div className="mt-5">
+    <div className="mt-5 animate-fade-up">
       <p className="text-[11px] uppercase tracking-widest text-muted-foreground mb-2 px-1">{title}</p>
       <div className="glass-card rounded-2xl divide-y divide-border overflow-hidden">{children}</div>
     </div>
   );
+  
   const Row = ({ icon: Icon, label, right, to }: any) => {
     const inner = (
       <div className="flex items-center gap-3 px-4 py-3.5">
@@ -55,18 +92,20 @@ function Profile() {
         <button className="glass size-10 rounded-full flex items-center justify-center"><Pencil className="size-4" /></button>
       } />
 
-      <div className="px-5">
-        <div className="glass-card rounded-3xl p-5 flex items-center gap-4">
+      <div className="px-5 pb-10">
+        <div className="glass-card rounded-3xl p-5 flex items-center gap-4 animate-fade-up">
           <div className="relative">
-            <div className="size-16 rounded-2xl gradient-primary flex items-center justify-center text-primary-foreground text-xl font-bold shadow-glow">AC</div>
+            <div className="size-16 rounded-2xl gradient-primary flex items-center justify-center text-primary-foreground text-xl font-bold shadow-glow">
+              {initials}
+            </div>
             <span className="absolute -bottom-1 -right-1 size-5 rounded-full bg-success border-2 border-background" />
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="font-semibold truncate">Alex Carter</h2>
-            <p className="text-xs text-muted-foreground">S2031 · CS · Year 3</p>
+            <h2 className="font-semibold truncate text-base">{user.otherNames} {user.surname}</h2>
+            <p className="text-xs text-muted-foreground">{user.matricNumber} · CS · L{user.level}</p>
             <div className="mt-2 flex gap-2">
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-success/15 text-success font-medium">86% attendance</span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/15 text-primary font-medium">Top 10%</span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-success/15 text-success font-semibold">{stats.averageRate}% attendance</span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/15 text-primary font-semibold">Top 10%</span>
             </div>
           </div>
         </div>
@@ -88,7 +127,10 @@ function Profile() {
           <Row icon={Shield} label="Privacy policy" />
         </Section>
 
-        <button className="mt-5 w-full glass-card rounded-2xl py-3.5 flex items-center justify-center gap-2 text-destructive font-semibold text-sm">
+        <button 
+          onClick={handleLogout}
+          className="mt-5 w-full glass-card rounded-2xl py-3.5 flex items-center justify-center gap-2 text-destructive font-bold text-sm hover:bg-destructive/5 transition"
+        >
           <LogOut className="size-4" /> Log out
         </button>
 

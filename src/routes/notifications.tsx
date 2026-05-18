@@ -1,73 +1,131 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useState, useEffect } from "react";
 import { Bell, AlertTriangle, Megaphone, CheckCircle2 } from "lucide-react";
 import { PhoneShell } from "@/components/PhoneShell";
 import { ScreenHeader } from "@/components/ScreenHeader";
+import { subscribeAuth } from "@/lib/auth";
+import { getCollection, subscribeCollection, updateDocument } from "@/lib/database";
 
 export const Route = createFileRoute("/notifications")({
   head: () => ({ meta: [{ title: "Notifications — Attendify" }] }),
   component: Notifications,
 });
 
-const groups = [
-  {
-    label: "Today",
-    items: [
-      { icon: Bell, t: "Reminder", d: "CS301 starts in 15 minutes — Hall B-204", ago: "now", color: "bg-primary/15 text-primary" },
-      { icon: CheckCircle2, t: "Attendance marked", d: "You were marked present in MATH210", ago: "2h", color: "bg-success/15 text-success" },
-    ],
-  },
-  {
-    label: "Yesterday",
-    items: [
-      { icon: AlertTriangle, t: "Missed class alert", d: "You missed CS320 — your attendance dropped to 84%", ago: "1d", color: "bg-destructive/15 text-destructive" },
-      { icon: Megaphone, t: "Dr. Lin posted", d: "Midterm review session moved to Friday 4PM", ago: "1d", color: "bg-warning/20 text-warning-foreground" },
-    ],
-  },
-  {
-    label: "Earlier",
-    items: [
-      { icon: Bell, t: "Weekly report", d: "Great week! You attended 11 of 12 classes.", ago: "3d", color: "bg-accent text-accent-foreground" },
-    ],
-  },
-];
-
 function Notifications() {
+  const navigate = useNavigate();
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [activeFilter, setActiveFilter] = useState("All");
+
+  useEffect(() => {
+    // Auth check
+    const unsubAuth = subscribeAuth((user) => {
+      if (!user) navigate({ to: "/login" });
+    });
+
+    // Subscribe to live database notifications
+    const unsubNotifs = subscribeCollection("notifications", (list) => {
+      // Sort newest first
+      const sorted = [...list].sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+      setNotifications(sorted);
+    });
+
+    return () => {
+      unsubAuth();
+      unsubNotifs();
+    };
+  }, [navigate]);
+
+  const markAllAsRead = async () => {
+    for (const n of notifications) {
+      if (!n.read) {
+        await updateDocument("notifications", n.id, { read: true });
+      }
+    }
+  };
+
+  const getIcon = (title: string) => {
+    const t = title.toLowerCase();
+    if (t.includes("marked") || t.includes("attendance") || t.includes("registered")) return CheckCircle2;
+    if (t.includes("missed") || t.includes("closed") || t.includes("expired")) return AlertTriangle;
+    if (t.includes("review") || t.includes("posted")) return Megaphone;
+    return Bell;
+  };
+
+  const getColor = (title: string) => {
+    const t = title.toLowerCase();
+    if (t.includes("marked") || t.includes("attendance") || t.includes("registered")) return "bg-success/15 text-success";
+    if (t.includes("missed") || t.includes("closed") || t.includes("expired")) return "bg-destructive/15 text-destructive";
+    if (t.includes("review") || t.includes("posted")) return "bg-warning/20 text-warning-foreground";
+    return "bg-primary/15 text-primary";
+  };
+
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  // Filter notifications
+  const filtered = notifications.filter(n => {
+    if (activeFilter === "All") return true;
+    const title = n.title.toLowerCase();
+    if (activeFilter === "Alerts") return title.includes("missed") || title.includes("closed") || title.includes("expired");
+    if (activeFilter === "Announcements") return title.includes("review") || title.includes("posted");
+    if (activeFilter === "Reminders") return !title.includes("missed") && !title.includes("closed") && !title.includes("posted");
+    return true;
+  });
+
   return (
     <PhoneShell>
-      <ScreenHeader title="Notifications" subtitle="3 unread" back="/dashboard" showTheme right={
-        <button className="text-xs font-medium text-primary px-3">Mark all</button>
-      } />
+      <ScreenHeader 
+        title="Notifications" 
+        subtitle={`${unreadCount} unread`} 
+        back="/dashboard" 
+        showTheme 
+        right={
+          <button onClick={markAllAsRead} className="text-xs font-semibold text-primary px-3 hover:underline">Mark all</button>
+        } 
+      />
 
-      <div className="px-5">
-        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-          {["All", "Reminders", "Alerts", "Announcements"].map((c, i) => (
-            <button key={c} className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-medium border ${i === 0 ? "gradient-primary text-primary-foreground border-transparent" : "bg-card/50 border-border"}`}>
+      <div className="px-5 pb-10">
+        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 mb-5">
+          {["All", "Reminders", "Alerts", "Announcements"].map((c) => (
+            <button 
+              key={c} 
+              onClick={() => setActiveFilter(c)}
+              className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold border transition ${
+                activeFilter === c 
+                  ? "gradient-primary text-primary-foreground border-transparent shadow-glow" 
+                  : "bg-card/50 border-border text-muted-foreground"
+              }`}
+            >
               {c}
             </button>
           ))}
         </div>
 
-        {groups.map((g) => (
-          <div key={g.label} className="mt-5">
-            <p className="text-[11px] uppercase tracking-widest text-muted-foreground mb-2 px-1">{g.label}</p>
-            <div className="space-y-2.5">
-              {g.items.map((n, i) => (
-                <div key={i} className="glass-card rounded-2xl p-3.5 flex gap-3 items-start">
-                  <span className={`size-10 rounded-xl flex items-center justify-center shrink-0 ${n.color}`}>
-                    <n.icon className="size-4" />
+        <div className="space-y-2.5">
+          {filtered.length > 0 ? (
+            filtered.map((n, i) => {
+              const Icon = getIcon(n.title);
+              const color = getColor(n.title);
+              return (
+                <div key={n.id || i} className={`glass-card rounded-2xl p-3.5 flex gap-3 items-start border transition ${
+                  !n.read ? "border-primary/20 bg-primary/5" : "border-border/60"
+                } animate-fade-up`} style={{ animationDelay: `${i * 0.05}s` }}>
+                  <span className={`size-10 rounded-xl flex items-center justify-center shrink-0 ${color}`}>
+                    <Icon className="size-4" />
                   </span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
-                      <p className="text-sm font-semibold truncate">{n.t}</p>
-                      <span className="text-[10px] text-muted-foreground shrink-0">{n.ago}</span>
+                      <p className="text-sm font-semibold truncate text-foreground">{n.title}</p>
+                      <span className="text-[10px] text-muted-foreground shrink-0">{n.time || "now"}</span>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-0.5">{n.d}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{n.message}</p>
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
-        ))}
+              );
+            })
+          ) : (
+            <p className="p-10 text-center text-xs text-muted-foreground">No notifications found.</p>
+          )}
+        </div>
       </div>
     </PhoneShell>
   );
