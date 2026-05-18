@@ -314,13 +314,6 @@ async function sendMailHelper(to: string, subject: string, html: string, fallbac
     family: 4
   };
 
-  // Print in the server console for perfect developer visibility
-  console.log(`\n======================================================`);
-  console.log(`✉️ [EMAIL EMULATOR LOG]`);
-  console.log(`To: ${to}`);
-  console.log(`Subject: ${subject}`);
-  console.log(`Credentials: ${fallbackLog}`);
-  console.log(`======================================================\n`);
 
   // Write to Firestore "mail" collection to support the official Firebase "Trigger Email" Extension!
   try {
@@ -347,6 +340,12 @@ async function sendMailHelper(to: string, subject: string, html: string, fallbac
 
   if (!isSmtpConfigured) {
     console.log("ℹ️ SMTP is not configured or using default placeholders. Email logged in console successfully (Offline Mode).");
+    console.log(`\n======================================================`);
+    console.log(`✉️ [EMAIL EMULATOR LOG]`);
+    console.log(`To: ${to}`);
+    console.log(`Subject: ${subject}`);
+    console.log(`Credentials: ${fallbackLog}`);
+    console.log(`======================================================\n`);
     return true;
   }
 
