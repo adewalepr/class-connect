@@ -311,7 +311,9 @@ async function sendMailHelper(to: string, subject: string, html: string, fallbac
       pass: getEnv("SMTP_PASS")
     },
     // Force Node.js to use IPv4 instead of IPv6 to prevent ENETUNREACH errors on Render/Vercel
-    family: 4
+    family: 4,
+    // Fail fast in 3 seconds to prevent backend hanging if Render firewall drops connections
+    connectionTimeout: 3000
   };
 
 

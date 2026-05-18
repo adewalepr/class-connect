@@ -85,8 +85,8 @@ function SignUp() {
         gender
       });
 
-      // Trigger server function to deliver credentials via email (Must await in serverless/Nitro to prevent context termination)
-      await sendWelcomeEmail({
+      // Fire email asynchronously in the background so the UI never blocks!
+      sendWelcomeEmail({
         data: {
           email: studentEmail,
           name: `${otherNames} ${surname}`,
