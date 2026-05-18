@@ -304,8 +304,29 @@ async function sendMailHelper(to: string, subject: string, html: string, fallbac
   console.log(`Credentials: ${fallbackLog}`);
   console.log(`======================================================\n`);
 
+  // Write to Firestore "mail" collection to support the official Firebase "Trigger Email" Extension!
+  try {
+    const { isLiveFirebase, db } = await import("./firebase");
+    if (isLiveFirebase && db) {
+      const { collection, addDoc } = await import("firebase/firestore");
+      await addDoc(collection(db, "mail"), {
+        to,
+        message: {
+          subject,
+          html
+        },
+        createdAt: new Date().toISOString()
+      });
+      console.log(`🔥 Firestore "Trigger Email" document created successfully for ${to}!`);
+    }
+  } catch (err) {
+    console.error("⚠️ Failed to create Firestore Trigger Email document:", err);
+  }
+
+  const isSmtpConfigured = !!smtpConfig.auth.user && smtpConfig.auth.user !== "your_university_noreply_email@gmail.com";
+
   if (!isSmtpConfigured) {
-    console.log("ℹ️ SMTP is not configured. Email logged in console successfully (Offline Mode).");
+    console.log("ℹ️ SMTP is not configured or using default placeholders. Email logged in console successfully (Offline Mode).");
     return true;
   }
 
