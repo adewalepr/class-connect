@@ -291,6 +291,16 @@ async function sendMailHelper(to: string, subject: string, html: string, fallbac
     return "";
   };
 
+  // DEBUG LOGGING TO CATCH RENDER ENV ISSUES
+  console.log("🕵️ SERVER DIAGNOSTICS: Inspecting Render Environment...");
+  console.log("process type:", typeof process);
+  console.log("process.env exists?", typeof process !== "undefined" && !!process.env);
+  if (typeof process !== "undefined" && process.env) {
+    const keys = Object.keys(process.env).filter(k => k.includes("SMTP") || k.includes("FIREBASE"));
+    console.log("Found related ENV keys on Render:", keys);
+    console.log("Raw SMTP_USER value length:", (process.env["SMTP_USER"] || "").length);
+  }
+
   // Resolve SMTP configuration dynamically to avoid SSR module cache issues
   const currentSmtpConfig = {
     host: getEnv("SMTP_HOST") || "smtp.gmail.com",
