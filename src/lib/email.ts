@@ -8,19 +8,6 @@ export interface EmailPayload {
   password: string;
 }
 
-// SMTP credentials from environment
-const smtpConfig = {
-  host: process.env.SMTP_HOST || "smtp.gmail.com",
-  port: parseInt(process.env.SMTP_PORT || "587"),
-  secure: process.env.SMTP_SECURE === "true", // true for 465, false for other ports
-  auth: {
-    user: process.env.SMTP_USER || "",
-    pass: process.env.SMTP_PASS || ""
-  }
-};
-
-const isSmtpConfigured = !!process.env.SMTP_USER;
-
 // ----------------------------------------------------
 // SECURE SERVER FUNCTIONS (Node-only execution)
 // ----------------------------------------------------
@@ -296,6 +283,17 @@ export const sendRecoveryEmail = createServerFn({ method: "POST" })
 async function sendMailHelper(to: string, subject: string, html: string, fallbackLog: string): Promise<boolean> {
   if (typeof window !== "undefined") return false;
 
+  // Resolve SMTP configuration dynamically to avoid SSR module cache issues
+  const currentSmtpConfig = {
+    host: process.env.SMTP_HOST || "smtp.gmail.com",
+    port: parseInt(process.env.SMTP_PORT || "587"),
+    secure: process.env.SMTP_SECURE === "true",
+    auth: {
+      user: process.env.SMTP_USER || "",
+      pass: process.env.SMTP_PASS || ""
+    }
+  };
+
   // Print in the server console for perfect developer visibility
   console.log(`\n======================================================`);
   console.log(`✉️ [EMAIL EMULATOR LOG]`);
@@ -323,7 +321,9 @@ async function sendMailHelper(to: string, subject: string, html: string, fallbac
     console.error("⚠️ Failed to create Firestore Trigger Email document:", err);
   }
 
-  const isSmtpConfigured = !!smtpConfig.auth.user && smtpConfig.auth.user !== "your_university_noreply_email@gmail.com";
+  const isSmtpConfigured = !!currentSmtpConfig.auth.user && 
+                           currentSmtpConfig.auth.user !== "your_university_noreply_email@gmail.com" &&
+                           currentSmtpConfig.auth.user !== "";
 
   if (!isSmtpConfigured) {
     console.log("ℹ️ SMTP is not configured or using default placeholders. Email logged in console successfully (Offline Mode).");
@@ -332,10 +332,10 @@ async function sendMailHelper(to: string, subject: string, html: string, fallbac
 
   try {
     const nodemailer = await import("nodemailer");
-    const transporter = nodemailer.createTransport(smtpConfig);
+    const transporter = nodemailer.createTransport(currentSmtpConfig);
     
     await transporter.sendMail({
-      from: `"Attendify" <${smtpConfig.auth.user}>`,
+      from: `"Attendify Support" <${currentSmtpConfig.auth.user}>`,
       to,
       subject,
       html
