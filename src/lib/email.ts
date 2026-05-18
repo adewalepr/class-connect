@@ -291,7 +291,9 @@ async function sendMailHelper(to: string, subject: string, html: string, fallbac
     auth: {
       user: process.env.SMTP_USER || "",
       pass: process.env.SMTP_PASS || ""
-    }
+    },
+    // Force Node.js to use IPv4 instead of IPv6 to prevent ENETUNREACH errors on Render/Vercel
+    family: 4
   };
 
   // Print in the server console for perfect developer visibility
