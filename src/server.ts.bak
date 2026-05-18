@@ -1,0 +1,22 @@
+import { createServer } from "node:http";
+import { createApp, toNodeListener } from "h3";
+
+// TanStack Start node-server preset exposes its h3 app via this import
+// at runtime after `vite build` with preset: "node-server"
+async function startServer() {
+  const port = Number(process.env.PORT ?? 3000);
+  const host = process.env.HOST ?? "0.0.0.0";
+
+  // The node-server preset generates .output/server/index.mjs which
+  // self-starts; this file is only used during local `vite dev`.
+  const server = createServer((req, res) => {
+    res.writeHead(200, { "content-type": "text/plain" });
+    res.end("Server is starting…");
+  });
+
+  server.listen(port, host, () => {
+    console.log(`Server listening on http://${host}:${port}`);
+  });
+}
+
+startServer().catch(console.error);
