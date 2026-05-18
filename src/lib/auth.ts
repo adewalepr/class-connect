@@ -224,8 +224,9 @@ export async function register(profile: Omit<UserSession, "uid" | "role"> & { ro
       };
 
       return session;
-    } catch (e) {
-      console.error("Live Firebase register failed, creating mock entry:", e);
+    } catch (e: any) {
+      console.error("Live Firebase register failed:", e);
+      throw new Error(`Firebase Error: ${e.message || "Failed to register live user."}`);
     }
   }
 
