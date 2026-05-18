@@ -71,7 +71,7 @@ function SignUp() {
       // Generate secure credentials
       const generatedUsername = "ATTD-" + Math.floor(10000 + Math.random() * 90000);
       
-      const newSession = await register({
+      const { session: newSession, generatedPassword } = await register({
         username: generatedUsername,
         email: studentEmail,
         role,
@@ -85,18 +85,15 @@ function SignUp() {
         gender
       });
 
-      // The password is sent inside mobile field as a hack in register
-      const generatedPassword = newSession.mobile || "p@ss1234";
-
-      // Trigger server function to deliver credentials via email
-      await sendWelcomeEmail({
+      // Trigger server function to deliver credentials via email WITHOUT blocking the UI
+      sendWelcomeEmail({
         data: {
           email: studentEmail,
           name: `${otherNames} ${surname}`,
           username: generatedUsername,
           password: generatedPassword
         }
-      });
+      }).catch(console.error);
 
       // Set credentials to show in the success modal
       setGeneratedCreds({

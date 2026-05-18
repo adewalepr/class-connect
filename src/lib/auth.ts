@@ -171,7 +171,9 @@ export async function logout(): Promise<void> {
 }
 
 // User sign up
-export async function register(profile: Omit<UserSession, "uid" | "role"> & { role: "student" | "lecturer" }): Promise<UserSession> {
+export async function register(profile: Omit<UserSession, "uid" | "role"> & { role: "student" | "lecturer" }): Promise<{ session: UserSession; generatedPassword: string }> {
+  console.log("🚀 STARTING REGISTRATION:", { isLiveFirebase, hasAuth: !!auth, email: profile.email });
+
   let generatedUsername = profile.username;
   
   // Uniqueness check to prevent collisions if multiple users register
@@ -190,9 +192,12 @@ export async function register(profile: Omit<UserSession, "uid" | "role"> & { ro
   const generatedPassword = Math.random().toString(36).substring(2, 6) + "@" + Math.floor(100 + Math.random() * 900); // e.g. Xy7#pL29-like
 
   if (isLiveFirebase && auth) {
+    console.log("⚡ ENTERING LIVE FIREBASE REGISTRATION BLOCK!");
     try {
       // Create user inside Firebase Auth
+      console.log("Executing createUserWithEmailAndPassword...");
       const credential = await createUserWithEmailAndPassword(auth, profile.email, generatedPassword);
+      console.log("✅ createUserWithEmailAndPassword SUCCESS:", credential.user.uid);
       
       const firestoreDoc = {
         uid: credential.user.uid,
@@ -213,7 +218,9 @@ export async function register(profile: Omit<UserSession, "uid" | "role"> & { ro
       };
 
       const collectionName = profile.role === "student" ? "students" : "lecturers";
+      console.log(`Writing to Firestore collection: ${collectionName}`);
       await setDocument(collectionName, credential.user.uid, firestoreDoc);
+      console.log("✅ Firestore write SUCCESS!");
 
       const session: UserSession = {
         uid: credential.user.uid,
@@ -223,14 +230,17 @@ export async function register(profile: Omit<UserSession, "uid" | "role"> & { ro
         ...profile
       };
 
-      return session;
+      return { session, generatedPassword };
     } catch (e: any) {
-      console.error("Live Firebase register failed:", e);
+      console.error("❌ Live Firebase register failed:", e);
       throw new Error(`Firebase Error: ${e.message || "Failed to register live user."}`);
     }
+  } else {
+    console.warn("⚠️ SKIPPING LIVE FIREBASE BLOCK. isLiveFirebase:", isLiveFirebase, "hasAuth:", !!auth);
   }
 
   // MOCK SIGN UP FLOW
+  console.log("🛡️ FALLING BACK TO MOCK DATABASE REGISTRATION.");
   const mockUid = profile.role + "-" + Math.floor(10000 + Math.random() * 90000);
   const collectionName = profile.role === "student" ? "students" : "lecturers";
 
@@ -254,16 +264,16 @@ export async function register(profile: Omit<UserSession, "uid" | "role"> & { ro
 
   await setDocument(collectionName, mockUid, newDoc);
 
-  // Return new session details (includes generated credential data)
-  return {
+  // Return new session details
+  const session = {
     uid: mockUid,
     username: generatedUsername,
     email: profile.email,
     role: profile.role,
-    ...profile,
-    // Add these for credentials output
-    mobile: generatedPassword // Hack to transport password securely in local payload
+    ...profile
   };
+
+  return { session, generatedPassword };
 }
 
 // Invalidate & reset credentials
