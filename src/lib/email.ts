@@ -26,8 +26,7 @@ const isSmtpConfigured = !!process.env.SMTP_USER;
 // ----------------------------------------------------
 
 export const sendWelcomeEmail = createServerFn({ method: "POST" })
-  .validator((data: EmailPayload) => data)
-  .handler(async ({ data }) => {
+  .handler(async ({ data }: { data: EmailPayload }) => {
     const { email, name, username, password } = data;
     console.log(`✉️ Sending Welcome Email to ${email} (Username: ${username})`);
 
@@ -159,8 +158,7 @@ export const sendWelcomeEmail = createServerFn({ method: "POST" })
   });
 
 export const sendRecoveryEmail = createServerFn({ method: "POST" })
-  .validator((data: EmailPayload) => data)
-  .handler(async ({ data }) => {
+  .handler(async ({ data }: { data: EmailPayload }) => {
     const { email, name, username, password } = data;
     console.log(`✉️ Sending Password Recovery Email to ${email}`);
 
