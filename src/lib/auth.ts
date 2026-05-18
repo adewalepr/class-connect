@@ -316,6 +316,32 @@ function clearSession() {
 }
 
 async function findEmailByUsername(username: string): Promise<string | null> {
+  if (isLiveFirebase) {
+    try {
+      const { db } = await import("./firebase");
+      const { query, collection, where, getDocs } = await import("firebase/firestore");
+      if (db) {
+        // Search students
+        const qStudent = query(collection(db, "students"), where("generatedUsername", "==", username));
+        const snapStudent = await getDocs(qStudent);
+        if (!snapStudent.empty) {
+          const data = snapStudent.docs[0].data();
+          return data.studentEmail || data.personalEmail || null;
+        }
+
+        // Search lecturers
+        const qLecturer = query(collection(db, "lecturers"), where("generatedUsername", "==", username));
+        const snapLecturer = await getDocs(qLecturer);
+        if (!snapLecturer.empty) {
+          const data = snapLecturer.docs[0].data();
+          return data.studentEmail || data.personalEmail || null;
+        }
+      }
+    } catch (err) {
+      console.error("Firestore lookup by username failed:", err);
+    }
+  }
+
   const students = await getCollection("students");
   const s = students.find(item => item.generatedUsername?.toUpperCase() === username.toUpperCase());
   if (s) return s.studentEmail || s.personalEmail;

@@ -11,8 +11,8 @@ export const Route = createFileRoute("/login")({
 
 function Login() {
   const navigate = useNavigate();
-  const [identity, setIdentity] = useState("alex@university.edu");
-  const [password, setPassword] = useState("password");
+  const [identity, setIdentity] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -77,14 +77,14 @@ function Login() {
           )}
 
           <div>
-            <label className="text-xs font-medium text-muted-foreground">Student ID / Email</label>
+            <label className="text-xs font-medium text-muted-foreground">Generated Username or Email</label>
             <div className="mt-1.5 flex items-center gap-2 px-4 py-3 rounded-2xl bg-secondary/70 border border-border">
               <Mail className="size-4 text-muted-foreground" />
               <input 
                 value={identity}
                 onChange={(e) => setIdentity(e.target.value)}
                 className="bg-transparent outline-none flex-1 text-sm w-full text-foreground" 
-                placeholder="alex@university.edu" 
+                placeholder="e.g. ATTD-12345 or alex@university.edu" 
                 required
               />
             </div>
