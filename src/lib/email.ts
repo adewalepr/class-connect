@@ -350,6 +350,11 @@ async function sendMailHelper(to: string, subject: string, html: string, fallbac
   }
 
   try {
+    const dns = await import("node:dns");
+    if (dns && dns.setDefaultResultOrder) {
+      dns.setDefaultResultOrder('ipv4first');
+    }
+    
     const nodemailer = await import("nodemailer");
     const transporter = nodemailer.createTransport(currentSmtpConfig);
     
