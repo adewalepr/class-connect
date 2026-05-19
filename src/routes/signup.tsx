@@ -39,7 +39,6 @@ function SignUp() {
   const [gender, setGender] = useState("Male");
   const [mobile, setMobile] = useState("");
   const [personalEmail, setPersonalEmail] = useState("");
-  const [studentEmail, setStudentEmail] = useState("");
   const [institution, setInstitution] = useState("State University");
   const [course, setCourse] = useState("");
   const [level, setLevel] = useState("300");
@@ -55,7 +54,7 @@ function SignUp() {
     setError(null);
 
     // Validation
-    if (!surname || !otherNames || !personalEmail || !studentEmail || !course) {
+    if (!surname || !otherNames || !personalEmail || !course) {
       setError("Please fill out all required fields.");
       setLoading(false);
       return;
@@ -73,7 +72,7 @@ function SignUp() {
       
       const { session: newSession, generatedPassword } = await register({
         username: generatedUsername,
-        email: studentEmail,
+        email: personalEmail,
         role,
         surname,
         otherNames,
@@ -88,7 +87,7 @@ function SignUp() {
       // Fire email asynchronously in the background so the UI never blocks!
       sendWelcomeEmail({
         data: {
-          email: studentEmail,
+          email: personalEmail,
           name: `${otherNames} ${surname}`,
           username: generatedUsername,
           password: generatedPassword
@@ -247,34 +246,18 @@ function SignUp() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">Personal Email *</label>
-              <div className="mt-1.5 flex items-center gap-2 px-3 py-2.5 rounded-2xl bg-secondary/70 border border-border">
-                <Mail className="size-4 text-muted-foreground" />
-                <input 
-                  type="email"
-                  value={personalEmail}
-                  onChange={(e) => setPersonalEmail(e.target.value)}
-                  className="bg-transparent outline-none flex-1 text-xs w-full" 
-                  placeholder="personal@gmail.com" 
-                  required
-                />
-              </div>
-            </div>
-            <div>
-              <label className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">Student Email *</label>
-              <div className="mt-1.5 flex items-center gap-2 px-3 py-2.5 rounded-2xl bg-secondary/70 border border-border">
-                <Mail className="size-4 text-muted-foreground" />
-                <input 
-                  type="email"
-                  value={studentEmail}
-                  onChange={(e) => setStudentEmail(e.target.value)}
-                  className="bg-transparent outline-none flex-1 text-xs w-full" 
-                  placeholder="student@university.edu" 
-                  required
-                />
-              </div>
+          <div>
+            <label className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">Personal Email *</label>
+            <div className="mt-1.5 flex items-center gap-2 px-3 py-2.5 rounded-2xl bg-secondary/70 border border-border">
+              <Mail className="size-4 text-muted-foreground" />
+              <input 
+                type="email"
+                value={personalEmail}
+                onChange={(e) => setPersonalEmail(e.target.value)}
+                className="bg-transparent outline-none flex-1 text-xs w-full" 
+                placeholder="personal@gmail.com" 
+                required
+              />
             </div>
           </div>
 
@@ -354,7 +337,7 @@ function SignUp() {
 
             <h3 className="text-lg font-bold text-center text-foreground">Credentials Generated!</h3>
             <p className="text-xs text-muted-foreground text-center mt-2.5 px-2">
-              Your profile has been created! Secure credentials have been generated and emailed to <span className="text-primary font-medium">{studentEmail}</span>.
+              Your profile has been created! Secure credentials have been generated and emailed to <span className="text-primary font-medium">{personalEmail}</span>.
             </p>
 
             <div className="mt-5 p-4 rounded-2xl bg-secondary/80 border border-border/80 text-left space-y-3">
