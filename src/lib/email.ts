@@ -317,33 +317,7 @@ async function sendMailHelper(to: string, subject: string, html: string, fallbac
   };
 
 
-  // Write to Firestore "mail" collection to support the official Firebase "Trigger Email" Extension!
-  let firebaseSuccess = false;
-  try {
-    const { isLiveFirebase, db } = await import("./firebase");
-    if (isLiveFirebase && db) {
-      const { collection, addDoc } = await import("firebase/firestore");
-      await addDoc(collection(db, "mail"), {
-        to,
-        message: {
-          subject,
-          html
-        },
-        createdAt: new Date().toISOString()
-      });
-      console.log(`🔥 Firestore "Trigger Email" document created successfully for ${to}!`);
-      firebaseSuccess = true;
-    }
-  } catch (err) {
-    console.error("⚠️ Failed to create Firestore Trigger Email document:", err);
-  }
-
-  // If Firebase Trigger Email is active and successfully queued the email, we don't need to use Nodemailer.
-  // This bypasses Render's strict outbound SMTP firewall rules for free tiers (blocking ports 25, 465, 587).
-  if (firebaseSuccess) {
-    console.log("✅ Email successfully queued via Firebase Trigger Email extension. Skipping SMTP fallback.");
-    return true;
-  }
+  // Removed Firebase Trigger Email block since the extension is not installed.
 
   // OPTION 1: Resend HTTP API (Bypasses Render SMTP Block)
   const RESEND_API_KEY = getEnv("RESEND_API_KEY");
