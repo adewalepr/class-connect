@@ -319,6 +319,34 @@ async function sendMailHelper(to: string, subject: string, html: string, fallbac
 
   // Removed Firebase Trigger Email block since the extension is not installed.
 
+  // OPTION 2: Google Apps Script Web App (100% Free, No domain needed)
+  const GOOGLE_SCRIPT_URL = getEnv("GOOGLE_SCRIPT_URL");
+  if (GOOGLE_SCRIPT_URL) {
+    try {
+      console.log(`🚀 Sending email via Google Apps Script to ${to}...`);
+      const res = await fetch(GOOGLE_SCRIPT_URL, {
+        method: "POST",
+        // Sending as plain text avoids CORS preflight issues if this ever runs client-side, 
+        // and Google Script handles it perfectly either way.
+        headers: {
+          "Content-Type": "text/plain;charset=utf-8", 
+        },
+        body: JSON.stringify({
+          to: to,
+          subject: subject,
+          html: html
+        })
+      });
+
+      const text = await res.text();
+      console.log(`✅ Google Apps Script response: ${text}`);
+      return true;
+    } catch (err) {
+      console.error("❌ Failed to deliver email via Google Apps Script:", err);
+      return false;
+    }
+  }
+
   // OPTION 1: Resend HTTP API (Bypasses Render SMTP Block)
   const RESEND_API_KEY = getEnv("RESEND_API_KEY");
   if (RESEND_API_KEY) {
