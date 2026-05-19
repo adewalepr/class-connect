@@ -345,6 +345,41 @@ async function sendMailHelper(to: string, subject: string, html: string, fallbac
     return true;
   }
 
+  // OPTION 1: Resend HTTP API (Bypasses Render SMTP Block)
+  const RESEND_API_KEY = getEnv("RESEND_API_KEY");
+  if (RESEND_API_KEY) {
+    try {
+      console.log(`🚀 Sending email via Resend API to ${to}...`);
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${RESEND_API_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          // Note: To send from your own domain, you must verify it in Resend.
+          // onboarding@resend.dev only allows sending to the email you signed up with.
+          from: getEnv("RESEND_FROM_EMAIL") || "Attendify <onboarding@resend.dev>",
+          to: [to],
+          subject: subject,
+          html: html
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        console.log(`✅ Email delivered successfully via Resend to ${to}! ID: ${data.id}`);
+        return true;
+      } else {
+        console.error("❌ Resend API Error:", data);
+        return false;
+      }
+    } catch (err) {
+      console.error("❌ Failed to deliver email via Resend API:", err);
+      return false;
+    }
+  }
+
   const isSmtpConfigured = !!currentSmtpConfig.auth.user && 
                            currentSmtpConfig.auth.user !== "your_university_noreply_email@gmail.com" &&
                            currentSmtpConfig.auth.user !== "";
