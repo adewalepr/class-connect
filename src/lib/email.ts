@@ -352,13 +352,18 @@ async function sendMailHelper(to: string, subject: string, html: string, fallbac
   }
 
   try {
-    const dns = await import("node:dns");
-    if (dns && dns.setDefaultResultOrder) {
-      dns.setDefaultResultOrder('ipv4first');
-    }
+    const dnsPromises = await import("node:dns/promises");
+    const { address } = await dnsPromises.lookup(currentSmtpConfig.host, { family: 4 });
+    console.log(`Resolved SMTP host ${currentSmtpConfig.host} to IPv4: ${address}`);
     
     const nodemailer = await import("nodemailer");
-    const transporter = nodemailer.createTransport(currentSmtpConfig);
+    const transporter = nodemailer.createTransport({
+      ...currentSmtpConfig,
+      host: address,
+      tls: {
+        servername: currentSmtpConfig.host
+      }
+    });
     
     await transporter.sendMail({
       from: `"Attendify Support" <${currentSmtpConfig.auth.user}>`,
