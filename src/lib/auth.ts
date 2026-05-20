@@ -223,11 +223,11 @@ export async function register(profile: Omit<UserSession, "uid" | "role"> & { ro
       console.log("✅ Firestore write SUCCESS!");
 
       const session: UserSession = {
+        ...profile,
         uid: credential.user.uid,
         username: generatedUsername,
         email: profile.email,
-        role: profile.role,
-        ...profile
+        role: profile.role
       };
 
       return { session, generatedPassword };
@@ -266,18 +266,18 @@ export async function register(profile: Omit<UserSession, "uid" | "role"> & { ro
 
   // Return new session details
   const session = {
+    ...profile,
     uid: mockUid,
     username: generatedUsername,
     email: profile.email,
-    role: profile.role,
-    ...profile
+    role: profile.role
   };
 
   return { session, generatedPassword };
 }
 
 // Invalidate & reset credentials
-export async function resetCredentials(email: string): Promise<{ username: string; password: newPassword }> {
+export async function resetCredentials(email: string): Promise<{ username: string; password: string }> {
   const normalizedEmail = email.toLowerCase().trim();
   const newPassword = Math.random().toString(36).substring(2, 6) + "#" + Math.floor(100 + Math.random() * 900);
 

@@ -13,7 +13,8 @@ export interface EmailPayload {
 // ----------------------------------------------------
 
 export const sendWelcomeEmail = createServerFn({ method: "POST" })
-  .handler(async ({ data }: { data: EmailPayload }) => {
+  .inputValidator((data: EmailPayload) => data)
+  .handler(async ({ data }) => {
     const { email, name, username, password } = data;
     console.log(`✉️ Sending Welcome Email to ${email} (Username: ${username})`);
 
@@ -145,7 +146,8 @@ export const sendWelcomeEmail = createServerFn({ method: "POST" })
   });
 
 export const sendRecoveryEmail = createServerFn({ method: "POST" })
-  .handler(async ({ data }: { data: EmailPayload }) => {
+  .inputValidator((data: EmailPayload) => data)
+  .handler(async ({ data }) => {
     const { email, name, username, password } = data;
     console.log(`✉️ Sending Password Recovery Email to ${email}`);
 
